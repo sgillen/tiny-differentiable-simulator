@@ -112,28 +112,41 @@ ENDIF(USE_CPPAD)
 IF(USE_CERES)
 message("Ceres libs:" ${CERES_LIBRARIES})
 
-add_executable(ceres_estimation_real ceres_estimation_real.cpp ${TDS_HDRS})
-target_link_libraries(ceres_estimation_real pybullet_visualizer_api  glog::glog Eigen3::Eigen ${CMAKE_DL_LIBS}  )
 
-# We want to link against ceres-debug.lib in Debug builds and Release/ceres.lib in optimized/Release builds.
-if (WIN32)
-    target_link_libraries(ceres_estimation_real  Opengl32)
-    target_link_libraries( ceres_estimation_real 
-      debug ${PROJECT_SOURCE_DIR}/third_party/ceres-solver/build_cmake/local_install/lib/Debug/ceres-debug.lib 
-      optimized  ${PROJECT_SOURCE_DIR}/third_party/ceres-solver/build_cmake/local_install/lib/Release/ceres.lib)
-    target_include_directories( ceres_estimation_real PRIVATE  ../third_party/glog/build_cmake/local_install/include ../third_party/ceres-solver/build_cmake/local_install/include )
+add_executable(billiard_opt_example_ceres billiard_opt_example_gui.cpp  ${TDS_HDRS})
+target_link_libraries(billiard_opt_example_ceres opengl_window Eigen3::Eigen glog::glog ${CMAKE_DL_LIBS})
+target_compile_definitions(billiard_opt_example_ceres PRIVATE USE_CERES) 
+target_include_directories(billiard_opt_example_ceres PRIVATE ../src ../third_party)
 
-else(WIN32)
-    target_link_libraries(ceres_estimation_real pybullet_visualizer_api Ceres::ceres)
-endif (WIN32)
-target_include_directories(ceres_estimation_real PRIVATE ../data/ibm-double-pendulum)
 
-IF(APPLE)
-  FIND_PACKAGE(OpenGL)
-  target_link_libraries(ceres_estimation_real ${COCOA} ${OPENGL_gl_LIBRARY} ${OPENGL_glu_LIBRARY})
-ENDIF()
+add_executable(pendulum_example_ceres pendulum_ceres.cpp  ${TDS_HDRS})
+target_link_libraries(pendulum_example_ceres opengl_window Eigen3::Eigen glog::glog ${CMAKE_DL_LIBS})
+target_include_directories(pendulum_example_ceres PRIVATE ../src ../third_party)
 
-ENDIF()
+
+# add_executable(ceres_estimation_real ceres_estimation_real.cpp ${TDS_HDRS})
+# target_link_libraries(ceres_estimation_real pybullet_visualizer_api  glog::glog Eigen3::Eigen ${CMAKE_DL_LIBS}  )
+# target_include_directories(ceres_estimation_real PRIVATE ../src ../third_party)
+
+# # We want to link against ceres-debug.lib in Debug builds and Release/ceres.lib in optimized/Release builds.
+# if (WIN32)
+#     target_link_libraries(ceres_estimation_real  Opengl32)
+#     target_link_libraries( ceres_estimation_real 
+#       debug ${PROJECT_SOURCE_DIR}/third_party/ceres-solver/build_cmake/local_install/lib/Debug/ceres-debug.lib 
+#       optimized  ${PROJECT_SOURCE_DIR}/third_party/ceres-solver/build_cmake/local_install/lib/Release/ceres.lib)
+#     target_include_directories( ceres_estimation_real PRIVATE  ../third_party/glog/build_cmake/local_install/include ../third_party/ceres-solver/build_cmake/local_install/include )
+
+# else(WIN32)
+#     target_link_libraries(ceres_estimation_real pybullet_visualizer_api Ceres::ceres)
+#   endif (WIN32)
+# target_include_directories(ceres_estimation_real PRIVATE ../data/ibm-double-pendulum)
+
+# IF(APPLE)
+#   FIND_PACKAGE(OpenGL)
+#   target_link_libraries(ceres_estimation_real ${COCOA} ${OPENGL_gl_LIBRARY} ${OPENGL_glu_LIBRARY})
+# ENDIF()
+
+ENDIF() # USE_CERES
 
 add_executable(laikago_footstep_ik laikago_footstep_ik.cpp ${TDS_HDRS})
 target_include_directories(laikago_footstep_ik PRIVATE ../src )

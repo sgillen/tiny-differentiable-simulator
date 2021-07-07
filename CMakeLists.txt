@@ -331,37 +331,42 @@ IF(USE_PAGMO2)
     endif()
 ENDIF()
 
-OPTION(USE_CERES "Use Ceres solver" OFF)
+OPTION(USE_CERES "Use Ceres solver" ON)
 IF(USE_CERES)
-    find_package(glog)
-    find_package(gflags)
-    #find_package(Ceres)
-    find_package(Ceres CONFIG REQUIRED)
-    IF(ceres_FOUND)
-	    add_definitions(-DUSE_CERES)
-	    message("FOUND CERES!")
-    ELSE()
-#      ExternalProject_Add(glog-Project
-#          PREFIX glog
-#          SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/third_party/glog
-#          CMAKE_ARGS
-#              -DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_BINARY_DIR}/glog
-#      )
-#      add_library(glog INTERFACE IMPORTED)
-#      add_dependencies(glog glog-Project)
-#      include_directories(${CMAKE_CURRENT_BINARY_DIR}/glog/include)
-#  
-#      ExternalProject_Add(ceres-solver-Project
-#          PREFIX ceres-solver
-#          SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/third_party/ceres-solver
-#          CMAKE_ARGS
-#            -DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_BINARY_DIR}/ceres-solver
-#            -DBUILD_EXAMPLES=OFF
-#        )
-#      add_library(ceres-solver INTERFACE IMPORTED)
-#      add_dependencies(ceres-solver ceres-solver-Project glog eigen3)
-#      include_directories(${CMAKE_CURRENT_BINARY_DIR}/ceres-solver/include)
-    ENDIF()
+  # CMAKE_PREFIX_PATH(${CMAKE_PREFIX_PATH}:${CMAKE_CURRENT_LIST_DIR}/third_party/ceres-solver)
+  # CMAKE_PREFIX_PATH(${CMAKE_PREFIX_PATH}:${CMAKE_CURRENT_LIST_DIR}/third_party/glog)
+  # CMAKE_PREFIX_PATH(${CMAKE_PREFIX_PATH}:${CMAKE_CURRENT_LIST_DIR}/third_party/glog)
+  find_package(glog)
+  find_package(gflags)
+  #find_package(Ceres)
+  find_package(Ceres CONFIG REQUIRED)
+  IF(ceres_FOUND)
+	add_definitions(-DUSE_CERES)
+	message("FOUND CERES!")
+  Else()
+    message("DID NOT FIND CERES!!!!")
+    
+    ExternalProject_Add(glog-Project
+      PREFIX glog
+      SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/third_party/glog
+      CMAKE_ARGS
+      -DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_BINARY_DIR}/glog
+      )
+    add_library(glog INTERFACE IMPORTED)
+    add_dependencies(glog glog-Project)
+    include_directories(${CMAKE_CURRENT_BINARY_DIR}/glog/include)
+    
+    ExternalProject_Add(ceres-solver-Project
+      PREFIX ceres-solver
+      SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/third_party/ceres-solver
+      CMAKE_ARGS
+      -DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_BINARY_DIR}/ceres-solver
+      -DBUILD_EXAMPLES=OFF
+      )
+    add_library(ceres-solver INTERFACE IMPORTED)
+    add_dependencies(ceres-solver ceres-solver-Project glog eigen3)
+    include_directories(${CMAKE_CURRENT_BINARY_DIR}/ceres-solver/include)
+  ENDIF()
 ENDIF(USE_CERES)
 
 #IF(USE_CERES)
