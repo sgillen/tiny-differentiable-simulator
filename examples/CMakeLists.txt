@@ -13,6 +13,11 @@ target_link_libraries(pendulum_example_tiny)
 target_compile_definitions(pendulum_example_tiny PRIVATE USE_TINY )
 target_include_directories(pendulum_example_tiny PRIVATE ../src )
 
+add_executable(pendulum_nn pendulum_nn.cpp  ${TDS_HDRS})
+target_link_libraries(pendulum_nn)
+target_compile_definitions(pendulum_nn PRIVATE USE_TINY )
+target_include_directories(pendulum_nn PRIVATE ../src )
+
 
 
 if (Eigen3_FOUND)

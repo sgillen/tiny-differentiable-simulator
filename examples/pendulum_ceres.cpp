@@ -39,8 +39,21 @@ using namespace tds;
 
 #include "math/tiny/tiny_algebra.hpp"
 
+
+
+
+const int num_spheres = 5;
+const int observation_size = num_spheres*2;
+const int action_size = num_spheres;
+const bool use_input_bias = false;
+const bool use_output_bias = true;
+const int n_params = observation_size*action_size + use_input_bias*observation_size + use_output_bias*action_size;
+
 template <typename Algebra>
-std::vector<typename Algebra::Scalar> rollout(const std::vector<typename Algebra::Scalar>& w_policy, int steps = 100, typename Algebra::Scalar dt = Algebra::fraction(1, 60)) {
+typename Algebra::Scalar* rollout(const typename Algebra::Scalar* const  w_policy,
+					      int steps = 100,
+					      typename Algebra::Scalar dt = Algebra::fraction(1, 60))
+{
   using Scalar = typename Algebra::Scalar;
   using Vector3 = typename Algebra::Vector3;
   
@@ -49,8 +62,10 @@ std::vector<typename Algebra::Scalar> rollout(const std::vector<typename Algebra
   typedef tds::MultiBody<Algebra> MultiBody;
   typedef typename Algebra::MatrixX MatrixX;
 
-
   tds::NeuralNetwork<Algebra> neural_network;
+  neural_network.set_input_dim(observation_size, use_input_bias);
+  neural_network.add_linear_layer(tds::NN_ACT_IDENTITY, num_spheres, use_output_bias); 
+  
   neural_network.set_parameters(w_policy);
   std::vector<typename Algebra::Scalar> action;
       
@@ -105,10 +120,12 @@ std::vector<typename Algebra::Scalar> rollout(const std::vector<typename Algebra
     }
   }
   
-  return hvec;
+  return hvec.data();
 };
 
 
+
+// I'm sure one of the examples here can help http://ceres-solver.org/nnls_modeling.html#autodiffcostfunction
 
 struct CeresFunctional {
   int steps{100};
@@ -116,21 +133,23 @@ struct CeresFunctional {
   template <typename T>
   bool operator()(const T* const p, T *e) const{
     //typedef ceres::Jet<double, 2> Jet;
-    std::vector<T> params{p[0], p[1], p[2], p[3]};
-    typedef std::conditional_t<std::is_same_v<T, double>, DoubleUtils, CeresUtils<2>> Utils;
-    *e = rollout<TinyAlgebra<T, Utils>>(params);
+
+    typedef std::conditional_t<std::is_same_v<T, double>, DoubleUtils, CeresUtils<n_params>> Utils;
+    *e = rollout<TinyAlgebra<T, Utils>>(p);
     return true;
   }
 };
 
-ceres::AutoDiffCostFunction<CeresFunctional, 1, 4> cost_function(new CeresFunctional);
-double* parameters = new double[4];
-double* gradient = new double[4];
+
+
+ceres::AutoDiffCostFunction<CeresFunctional, 1, n_params> cost_function(new CeresFunctional);
+  double* parameters = new double[n_params];
+  double* gradient = new double[n_params];
 
 
 void grad_ceres(double* cost, int steps = 300) {
-  double const* const* params = &parameters;
-  cost_function.Evaluate(params, cost, &gradient);
+  double const* const* const_paramp = &parameters;
+  cost_function.Evaluate(const_paramp, cost, &gradient);
 }
 
 
