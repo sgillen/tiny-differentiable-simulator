@@ -127,6 +127,9 @@ target_include_directories(billiard_opt_example_ceres PRIVATE ../src ../third_pa
 add_executable(pendulum_example_ceres pendulum_ceres.cpp  ${TDS_HDRS})
 target_link_libraries(pendulum_example_ceres opengl_window Eigen3::Eigen glog::glog ${CMAKE_DL_LIBS})
 target_include_directories(pendulum_example_ceres PRIVATE ../src ../third_party)
+#target_compile_options(pendulum_example_ceres PUBLIC -g)
+
+
 
 
 # add_executable(ceres_estimation_real ceres_estimation_real.cpp ${TDS_HDRS})
