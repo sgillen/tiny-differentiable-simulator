@@ -72,9 +72,13 @@ target_include_directories(opengl_imgui_test PRIVATE ../third_party/glad ../thir
 
 IF(USE_CPPAD)
 
-  add_executable(pendulum_example_cppad pendulum_cppad.cpp  ${TDS_HDRS})
-  target_link_libraries(pendulum_example_cppad opengl_window Eigen3::Eigen glog::glog ${CMAKE_DL_LIBS})
-  target_include_directories(pendulum_example_cppad PRIVATE ../src ../third_party)
+  add_executable(pendulum_cppad pendulum_cppad.cpp  ${TDS_HDRS})
+  target_link_libraries(pendulum_cppad opengl_window Eigen3::Eigen glog::glog ${CMAKE_DL_LIBS})
+  target_include_directories(pendulum_cppad PRIVATE ../src ../third_party)
+
+  add_executable(pendulum_cppad_gui pendulum_cppad_gui.cpp  ${TDS_HDRS})
+  target_link_libraries(pendulum_cppad_gui opengl_window Eigen3::Eigen glog::glog ${CMAKE_DL_LIBS})
+  target_include_directories(pendulum_cppad_gui PRIVATE ../src ../third_party)
 
   
   add_executable(cuda_codegen cuda_codegen.cpp ${TDS_HDRS})

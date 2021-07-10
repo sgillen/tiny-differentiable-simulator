@@ -40,7 +40,7 @@ using namespace tds;
 
 #include "math/tiny/tiny_algebra.hpp"
 
-const int num_spheres = 5;
+const int num_spheres = 1;
 const int observation_size = num_spheres*2;
 const int action_size = num_spheres;
 const bool use_input_bias = false;
@@ -49,7 +49,7 @@ const int n_params = observation_size*action_size + use_input_bias*observation_s
 const int steps = 300;
 
 template <typename Algebra>
-std::vector<typename Algebra::Scalar> rollout(std::vector<typename Algebra::Scalar>  w_policy,
+typename Algebra::Scalar rollout(std::vector<typename Algebra::Scalar>  w_policy,
                                   typename Algebra::Scalar dt = Algebra::fraction(1, 60))
 {
 
@@ -83,7 +83,7 @@ std::vector<typename Algebra::Scalar> rollout(std::vector<typename Algebra::Scal
 
     MatrixX M(mb->links().size(), mb->links().size());
 
-    std::vector<typename Algebra::Scalar> height_vec(steps);
+    typename Algebra::Scalar height_vec_sum; 
 
   
     for (int i = 0; i < steps; i++) {
@@ -109,7 +109,14 @@ std::vector<typename Algebra::Scalar> rollout(std::vector<typename Algebra::Scal
             neural_network.compute(observation, action);
 
             for(int i = 0; i<action_size; i++){
-                mb->tau()[i] = action[i];
+              if (action[i] > Algebra::from_double(5.0)){
+                action[i] = Algebra::from_double(5.0);
+              }
+              if (action[i] < Algebra::from_double(-5.0)){
+                action[i] = Algebra::from_double(-5.0);
+              }
+
+              mb->tau()[i] = action[i];
             }
           
 
@@ -124,7 +131,10 @@ std::vector<typename Algebra::Scalar> rollout(std::vector<typename Algebra::Scal
             
             // printf("q: [%.3f %.3f] \tqd: [%.3f %.3f]\n", mb->q()[0], mb->q()[1], mb->qd()[0], mb->qd()[1]);
 
-            height_vec[i] = (mb->q()[1]);
+            for (int j = 0; j < mb->dof(); j++){
+              height_vec_sum += (Algebra::sin(mb->q()[j])/Algebra::from_double(((double)steps)));
+            }
+            
             //tds::mass_matrix(*mb, &M);
             //M.print("M");
       
@@ -134,9 +144,72 @@ std::vector<typename Algebra::Scalar> rollout(std::vector<typename Algebra::Scal
             }
         }
     }
-  
-    return height_vec;
+
+   
+    
+    return height_vec_sum;
 };
+
+
+
+int main(void)
+{   using CppAD::AD;   // use AD as abbreviation for CppAD::AD
+
+    std::vector<AD<double>> parameters(n_params);
+    std::vector<double> eval_parameters(n_params);
+    double ss = 1;
+
+    // Set NaN trap
+    //feenableexcept(FE_INVALID | FE_OVERFLOW);
+    
+    
+    for(int i = 0; i < n_params; i++){
+        parameters[i] = 0.01;
+        eval_parameters[i] = 0.01;
+    }
+
+    for(int i = 0; i < 10000; i ++){
+        CppAD::Independent(parameters);
+        AD<double> reward;
+        
+        typedef CppADUtils<double> MyUtils;
+        typedef TinyAlgebra<AD<double>, MyUtils> MyAlgebra;
+        reward = rollout<MyAlgebra>(parameters);
+        
+        CppAD::ADFun<double> f(parameters, std::vector<AD<double>>{reward});
+        
+        vector<double> jac(n_params*1);
+        
+        jac = f.Jacobian(eval_parameters);
+
+        
+        std::cout << i << " " << MyAlgebra::to_double(reward)  << "     " << jac[0] << std::endl;
+
+        
+        // for(int j = 0; j < jac.size(); j++){
+        //     std::cout << j << " " << jac[j] << std::endl;
+        // }
+
+        
+        // for(int j = 0; j < jac.size(); j++){
+        //   std::cout << j << " " << eval_parameters[j] << std::endl;
+        // }
+        
+        
+        for (int j = 0; j < n_params; j++){
+            eval_parameters[j] += ss*jac[j];
+            parameters[j] = eval_parameters[j];
+        }
+
+        // for(int j = 0; j < jac.size(); j++){
+        //   std::cout << j << " " << eval_parameters[j] << std::endl;
+        // }
+
+    }
+    
+    
+    return 0;
+}
 
 
 // namespace { // begin the empty namespace
@@ -197,39 +270,4 @@ std::vector<typename Algebra::Scalar> rollout(std::vector<typename Algebra::Scal
 
 //     return error_code;
 // }
-
-
-
-int main(void)
-{   using CppAD::AD;   // use AD as abbreviation for CppAD::AD
-
-    std::vector<AD<double>> parameters(n_params);
-    std::vector<double> eval_parameters(n_params);
-
-    
-    for(int i = 0; i < n_params; i++){
-        parameters[i] = 0.01;
-        eval_parameters[i] = 0.01;
-    }
-
-    CppAD::Independent(parameters);
-    std::vector<AD<double>> rewards(steps);
-    
-    typedef CppADUtils<double> MyUtils;
-    typedef TinyAlgebra<AD<double>, MyUtils> MyAlgebra;
-    rewards = rollout<MyAlgebra>(parameters);
-
-    CppAD::ADFun<double> f(parameters, rewards);
-
-    vector<double> jac(n_params*steps);
-
-    jac = f.Jacobian(eval_parameters);
-
-    for(int i = 0; i < jac.size(); i++){
-        std::cout << jac[i] << std::endl;
-    }
-    
-    
-    return 0;
-}
 

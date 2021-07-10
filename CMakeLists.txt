@@ -331,7 +331,7 @@ IF(USE_PAGMO2)
     endif()
 ENDIF()
 
-OPTION(USE_CERES "Use Ceres solver" ON)
+OPTION(USE_CERES "Use Ceres solver" OFF)
 IF(USE_CERES)
   # CMAKE_PREFIX_PATH(${CMAKE_PREFIX_PATH}:${CMAKE_CURRENT_LIST_DIR}/third_party/ceres-solver)
   # CMAKE_PREFIX_PATH(${CMAKE_PREFIX_PATH}:${CMAKE_CURRENT_LIST_DIR}/third_party/glog)
