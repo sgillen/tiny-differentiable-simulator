@@ -29,10 +29,11 @@
 
 
 
-#include "math/tiny/ceres_utils.h"
-#include <ceres/autodiff_cost_function.h>
-#include "math/tiny/ceres_utils.h"
 
+#include <iostream>        // standard input/output
+#include <vector>          // standard vector
+#include "math/tiny/cppad_utils.h"
+#include <cppad/cppad.hpp> // the CppAD package
 
 using namespace TINY;
 using namespace tds;
@@ -48,7 +49,7 @@ const int n_params = observation_size*action_size + use_input_bias*observation_s
 const int steps = 300;
 
 template <typename Algebra>
-typename Algebra::Scalar* rollout(const typename Algebra::Scalar* const  w_policy,
+std::vector<typename Algebra::Scalar> rollout(std::vector<typename Algebra::Scalar>  w_policy,
                                   typename Algebra::Scalar dt = Algebra::fraction(1, 60))
 {
 
@@ -64,14 +65,8 @@ typename Algebra::Scalar* rollout(const typename Algebra::Scalar* const  w_polic
     neural_network.set_input_dim(observation_size, use_input_bias);
     neural_network.add_linear_layer(tds::NN_ACT_IDENTITY, num_spheres, use_output_bias); 
 
-    std::vector<typename Algebra::Scalar> policy_vec;
-    for(int i = 0; i < n_params; i++) {
-        policy_vec.push_back(w_policy[i]);
-    }
-
-
     
-    neural_network.set_parameters(policy_vec);
+    neural_network.set_parameters(w_policy);
     std::vector<typename Algebra::Scalar> action;
 
     tds::World<Algebra> world;
@@ -88,7 +83,7 @@ typename Algebra::Scalar* rollout(const typename Algebra::Scalar* const  w_polic
 
     MatrixX M(mb->links().size(), mb->links().size());
 
-    typename Algebra::Scalar* height_vec =  new typename Algebra::Scalar[steps];
+    std::vector<typename Algebra::Scalar> height_vec(steps);
 
   
     for (int i = 0; i < steps; i++) {
@@ -143,65 +138,98 @@ typename Algebra::Scalar* rollout(const typename Algebra::Scalar* const  w_polic
     return height_vec;
 };
 
-// The autodiffed functor, ceres just needs to have the templatized operator() function. 
-struct CeresFunctional {
-    template <typename T>
-    bool operator()(const T* const p, T *e) const{
-        //typedef ceres::Jet<double, 2> Jet;
-      
-        std::cout << "operator" << std::endl;
-      
-        typedef std::conditional_t<std::is_same_v<T, double>, DoubleUtils, CeresUtils<n_params>> Utils;
-        T* tmp = rollout<TinyAlgebra<T, Utils>>(p);
-        std::cout << "after calling rollout" << std::endl;
-        for(int i = 0; i < steps; i++){
-            e[i] = tmp[i];
-        }
 
-        std::cout << "returning from functional" << std::endl;
-      
-        return true;
-    }
-};
+// namespace { // begin the empty namespace
+//     // define the function Poly(a, x) = a[0] + a[1]*x[1] + ... + a[k-1]*x[k-1]
+//     template <class Type>
+//     Type Poly(const CPPAD_TESTVECTOR(double) &a, const Type &x)
+//     {   size_t k  = a.size();
+//         Type y   = 0.;  // initialize summation
+//         Type x_i = 1.;  // initialize x^i
+//         for(size_t i = 0; i < k; i++)
+//         {   y   += a[i] * x_i;  // y   = y + a_i * x^i
+//             x_i *= x;           // x_i = x_i * x
+//         }
+//         return y;
+//     }
+// }
+
+// int main(void)
+// {   using CppAD::AD;   // use AD as abbreviation for CppAD::AD
+//     using std::vector; // use vector as abbreviation for std::vector
+
+//     // vector of polynomial coefficients
+//     size_t k = 5;                  // number of polynomial coefficients
+//     CPPAD_TESTVECTOR(double) a(k); // vector of polynomial coefficients
+//     for(size_t i = 0; i < k; i++)
+//         a[i] = 1.;                 // value of polynomial coefficients
+
+//     // domain space vector
+//     size_t n = 1;               // number of domain space variables
+//     vector< AD<double> > ax(n); // vector of domain space variables
+//     ax[0] = 3.;                 // value at which function is recorded
+
+//     // declare independent variables and start recording operation sequence
+//     CppAD::Independent(ax);
+
+//     // range space vector
+//     size_t m = 1;               // number of ranges space variables
+//     vector< AD<double> > ay(m); // vector of ranges space variables
+//     ay[0] = Poly(a, ax[0]);     // record operations that compute ay[0]
+
+//     // store operation sequence in f: X -> Y and stop recording
+//     CppAD::ADFun<double> f(ax, ay);
+
+//     // compute derivative using operation sequence stored in f
+//     vector<double> jac(m * n); // Jacobian of f (m by n matrix)
+//     vector<double> x(n);       // domain space vector
+//     x[0] = 3.;                 // argument value for computing derivative
+//     jac  = f.Jacobian(x);      // Jacobian for operation sequence
+
+//     // print the results
+//     std::cout << "f'(3) computed by CppAD = " << jac[0] << std::endl;
+
+//     // check if the derivative is correct
+//     int error_code;
+//     if( jac[0] == 142. )
+//         error_code = 0;      // return code for correct case
+//     else  error_code = 1;    // return code for incorrect case
+
+//     return error_code;
+// }
 
 
 
-ceres::AutoDiffCostFunction<CeresFunctional, steps, n_params> cost_function(new CeresFunctional);
+int main(void)
+{   using CppAD::AD;   // use AD as abbreviation for CppAD::AD
 
+    std::vector<AD<double>> parameters(n_params);
+    std::vector<double> eval_parameters(n_params);
 
-int main(int argc, char* argv[]) {
-    std::cout << "starting" << std::endl;
-
-    double* parameters = new double [n_params];
-    double* cost = new double [steps];
-    double* gradient = new double[steps*n_params];
     
-
-
     for(int i = 0; i < n_params; i++){
         parameters[i] = 0.01;
+        eval_parameters[i] = 0.01;
     }
-    
-    double const* const* const_paramp = &parameters;
 
-    //    std::cout << cost_function.parameter_block_sizes_.size() << std::endl;
-    //    std::cout << steps*n_params<< std::endl;
+    CppAD::Independent(parameters);
+    std::vector<AD<double>> rewards(steps);
     
-    cost_function.Evaluate(const_paramp, cost, &gradient);
-    for(int i = 0; i < steps*n_params; i++){
-        std::cout << gradient[i] << std::endl;
+    typedef CppADUtils<double> MyUtils;
+    typedef TinyAlgebra<AD<double>, MyUtils> MyAlgebra;
+    rewards = rollout<MyAlgebra>(parameters);
+
+    CppAD::ADFun<double> f(parameters, rewards);
+
+    vector<double> jac(n_params*steps);
+
+    jac = f.Jacobian(eval_parameters);
+
+    for(int i = 0; i < jac.size(); i++){
+        std::cout << jac[i] << std::endl;
     }
-    std::cout << "returning from main" << std::endl;
+    
+    
+    return 0;
 }
-
-
-
-
-
-// int main(int argc, char* argv[]){
-//     double* parameters = new double [n_params]();
-//     //    double const* const const_paramp = parameters;
-
-//     rollout<TinyAlgebra<double, DoubleUtils>>((double const* const)parameters);
-// }
 
