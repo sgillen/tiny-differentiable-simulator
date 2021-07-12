@@ -273,6 +273,9 @@ endif(USE_OPTIM)
 
 OPTION(USE_CPPAD "Use CppAD and CppADCodeGen" ON)
 IF(USE_CPPAD)
+  find_package(glog)
+  find_package(gflags)
+
   # Add CppAD as an external project and an imported target.  
   ExternalProject_Add(CppAD-Project
     PREFIX CppAD
@@ -311,31 +314,33 @@ set(BENCHMARK_ENABLE_GTEST_TESTS OFF)
 #add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/third_party/benchmark)
 #add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/third_party/HighFive)
 
-OPTION(USE_PAGMO2 "Use Pagmo2" OFF)
+OPTION(USE_PAGMO2 "Use Pagmo2" ON)
 IF(USE_PAGMO2)
     find_package(Boost QUIET REQUIRED)
     if (Boost_FOUND)
     message("found boost!")
     endif()
 
-    find_package(TBB REQUIRED)
-    IF(TBB_FOUND)
-     message("TBB found")
-    ENDIF()
-
+    
     find_package(Pagmo CONFIG)
     if (Pagmo_FOUND)
       message("FOUND PAGMO2!")
       message("${PAGMO_INCLUDE_DIRS}")
       add_definitions(-DUSE_PAGMO)
     endif()
+
+    #sgillen: This feels pretty yikes
+    list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/third_party/pagmo2/cmake_modules/")
+    
+    find_package(TBB REQUIRED MODULE)
+    IF(TBB_FOUND)
+     message("TBB found")
+    ENDIF()
+
 ENDIF()
 
 OPTION(USE_CERES "Use Ceres solver" OFF)
 IF(USE_CERES)
-  # CMAKE_PREFIX_PATH(${CMAKE_PREFIX_PATH}:${CMAKE_CURRENT_LIST_DIR}/third_party/ceres-solver)
-  # CMAKE_PREFIX_PATH(${CMAKE_PREFIX_PATH}:${CMAKE_CURRENT_LIST_DIR}/third_party/glog)
-  # CMAKE_PREFIX_PATH(${CMAKE_PREFIX_PATH}:${CMAKE_CURRENT_LIST_DIR}/third_party/glog)
   find_package(glog)
   find_package(gflags)
   #find_package(Ceres)

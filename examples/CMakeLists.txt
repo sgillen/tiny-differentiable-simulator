@@ -76,6 +76,11 @@ IF(USE_CPPAD)
   target_link_libraries(pendulum_cppad opengl_window Eigen3::Eigen glog::glog ${CMAKE_DL_LIBS})
   target_include_directories(pendulum_cppad PRIVATE ../src ../third_party)
 
+  add_executable(pendulum_cppad2 pendulum_cppad2.cpp  ${TDS_HDRS})
+  target_link_libraries(pendulum_cppad2 opengl_window Eigen3::Eigen glog::glog ${CMAKE_DL_LIBS})
+  target_include_directories(pendulum_cppad2 PRIVATE ../src ../third_party)
+
+  
   add_executable(pendulum_cppad_gui pendulum_cppad_gui.cpp  ${TDS_HDRS})
   target_link_libraries(pendulum_cppad_gui opengl_window Eigen3::Eigen glog::glog ${CMAKE_DL_LIBS})
   target_include_directories(pendulum_cppad_gui PRIVATE ../src ../third_party)
